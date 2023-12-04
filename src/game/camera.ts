@@ -1,16 +1,22 @@
-import { Vector2, Matrix3 } from '../models';
+  import { Vector2, Matrix3 } from '../models';
 
 
-class Camera {
+export class Camera {
     pos: Vector2;
-    viewMatrix: Matrix3;
-  
+
     constructor(initPos: Vector2) {
-      this.viewMatrix = new Matrix3();
       this.pos = initPos;
     } 
     
-    getWorldToCameraMatrix() {
-      // Calculate matrix going from world => camera space
+    
+    get viewMatrix() : Matrix3 {
+      const viewMatrix = new Matrix3();
+      viewMatrix.a = 1;
+      viewMatrix.b = 0;
+      viewMatrix.c = 0;
+      viewMatrix.d = 1;
+      viewMatrix.tx = -this.pos.x;
+      viewMatrix.ty = -this.pos.y;
+      return viewMatrix;
     }
 }

@@ -1,6 +1,6 @@
 
 
-export default class InputHandler {
+export class InputHandler {
     elementRef: HTMLElement;
     private keyDownEventFunc: (e: Event) => void;
     private keyUpEventFunc: (e: Event) => void;

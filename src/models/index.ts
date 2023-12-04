@@ -1,3 +1,15 @@
+import { Camera } from "../game/camera";
+
+// Maintain transform state
+export class TransformState {
+  camera: Camera;
+  parentTransform: Matrix3; 
+  
+  constructor(camerTr: Camera, parentTr: Matrix3) {
+    this.camera = camerTr; 
+    this.parentTransform = parentTr;
+  }
+}
 
 
 export class Vector2 {
@@ -39,76 +51,58 @@ export class Matrix3 {
     } 
   
     translate(x: number, y: number) {
-      this.tx = x;
-      this.ty = y; 
+      this.tx += x;
+      this.ty += y; 
     }
 
     scale(sx: number, sy: number) {
         this.a *= sx;
         this.b *= sx;
-        
         this.c *= sy;  
         this.d *= sy;
         
         return this;
     }
 
+    rotate(angle: number): Matrix3 {
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const a = this.a * cosine + this.c * sine;
+      const b = this.b * cosine + this.d * sine; 
+      const c = this.c * cosine - this.a * sine;  
+      const d = this.d * cosine - this.b * sine;
+      const newMat = new Matrix3();
+      newMat.a = a; newMat.b = b; newMat.c = c; newMat.d = d;
+      newMat.tx = this.tx; newMat.ty = this.ty;
+      return newMat;  
+    }
+  
+
+    skew(ax: number, ay: number) {
+      const a = this.a + this.b * ay;
+      const b = this.b + this.a * ax;
+      const c = this.c + this.d * ay; 
+      const d = this.d + this.c * ax;
+      const newMat = new Matrix3();
+      newMat.a = a; newMat.b = b; newMat.c = c; newMat.d = d;
+      newMat.tx = this.tx; newMat.ty = this.ty;
+      return newMat;  
+    }
+
     multiply(matrix: Matrix3) : Matrix3 {    
-        const a = this.a * matrix.a + this.c * matrix.b;
-        const b = this.b * matrix.a + this.d * matrix.b;        
-        const c = this.a * matrix.c + this.c * matrix.d;
-        const d = this.b * matrix.c + this.d * matrix.d;
-        const tx = this.a * matrix.tx + this.c * matrix.ty + this.tx; 
-        const ty = this.b * matrix.tx + this.d * matrix.ty + this.ty;
-    
+        const a = this.a * matrix.a + this.b * matrix.c;
+        const b = this.a * matrix.b + this.b * matrix.d;
+        const tx = this.a * matrix.tx + this.b * matrix.ty + this.tx;
+        const c = this.c * matrix.a + this.d * matrix.c;
+        const d = this.c * matrix.b + this.d * matrix.d
+        const ty = this.c * matrix.tx + this.d * matrix.ty + this.ty;
         const newMat = new Matrix3();
         newMat.a = a;
-        newMat.a = b;
-        newMat.a = c;
-        newMat.a = d;
-        newMat.a = tx;
-        newMat.a = ty;
+        newMat.b = b;
+        newMat.c = c;
+        newMat.d = d;
+        newMat.tx = tx;
+        newMat.ty = ty;
         return newMat;
     }
 }
-
-const A = new Matrix3(); 
-A.translate(10, 10);
-
-const B = new Matrix3();
-B.scale(2, 2); 
-
-const C = A.multiply(B); 
-// C has translation by (10, 10) 
-// and then scale by (2, 2)
-
-
-
-// Camera view transform
-const camera = new Matrix3(); 
-camera.translate(-100, -50);
-
-// Node A world transform
-const worldA = new Matrix3();
-worldA.translate(100, 100);
-
-// Node B local transform 
-const localB = new Matrix3();
-localB.translate(50, 0); 
-
-// Node C local transform
-const localC = new Matrix3();
-localC.translate(10, 10);
-
-// Build world transform chain 
-const worldB = worldA.multiply(localB); 
-const worldC = worldB.multiply(localC);
-
-// Apply camera view transform
-const viewC = camera.multiply(worldC);
-
-// Render position
-const x = viewC.tx; 
-const y = viewC.ty;
-
- 

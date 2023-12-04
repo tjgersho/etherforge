@@ -1,6 +1,7 @@
 
 import { RealNode } from "../realNode";
 import { Input, Rect } from "../interfaces";
+import { TransformState } from "../models";
 // Example child node
 export class ParticleNode extends RealNode {
 
@@ -53,14 +54,16 @@ export class ParticleNode extends RealNode {
     }
 
 
-    override render(ctx: CanvasRenderingContext2D) {
+    override render(ctx: CanvasRenderingContext2D, state: TransformState) {
         // Draw current node
+        this.transforms(state); //Call base class transforms message.
+
         ctx.fillStyle = this.color || "transparent";  
 
         ctx.beginPath();
         ctx.arc(this.posX, this.posY, this.aveRadius, 0,2*Math.PI);
         ctx.fill();
-  
+ 
         // Draw lines to children
         this.children.forEach(child => {
           ctx.beginPath();
@@ -69,7 +72,7 @@ export class ParticleNode extends RealNode {
           ctx.stroke();
         });
         
-        this.renderChildren(ctx);
+        this.renderChildren(ctx, state);
     
       }
 
