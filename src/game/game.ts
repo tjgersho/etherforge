@@ -28,7 +28,7 @@ export class Game extends RealNode {
         super();
         this.ctx = ctx;
         this.root = new RealNode();
-        this.root.setBounds(0,0,width,height, "gray");
+        this.root.setProps({x:0,y:0,width,height, color:"gray"});
         this.width = width;
         this.height = height;
         this.camera = new Camera(new Vector2(0,0));
@@ -54,14 +54,17 @@ export class Game extends RealNode {
       let currentTime = Date.now();  
       let dt = (currentTime - this.lastTime) / 1000;
 
+      this.root.pre_update_hook();
+
       this.root.update(dt, this.inputs, {x:0, y:0, width:this.width, height:this.height}); 
 
-      // Traverse game graph and render
+      this.root.post_update_hook();
+ 
       this.ctx.clearRect(0, 0, this.width, this.height);  
-      // Apply camera view matrix
-      console.log("Top Level TransformState");
-      console.log(this.transformState);
-      this.root.render(this.ctx, this.transformState);
+
+      this.root.transforms(this.transformState);
+ 
+      this.root.render(this.ctx);
 
       this.lastTime = currentTime;
  

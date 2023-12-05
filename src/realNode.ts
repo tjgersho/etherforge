@@ -10,10 +10,13 @@ export class RealNode {
     color?: string;
     xVelocity: number = 0; //Relative x velocity
     yVelocity: number = 0; //Relative y velocity
-    viewTransform: Matrix3 = new Matrix3(); // Initializes with identity.
+    parentTransform: Matrix3 = new Matrix3(); // Initializes with identity.
     localTransform: Matrix3 = new Matrix3();
     renderTransform: Matrix3 = new Matrix3();
     children: RealNode[] = [];
+
+    pre_update_hook: () => void = () => {};
+    post_update_hook: () => void = () => {};
 
     get posX(): number { return   this.localTransform.tx + (this.width/2) }
     get posY(): number { return   this.localTransform.ty  + (this.height/2) }
@@ -27,37 +30,61 @@ export class RealNode {
 
     constructor(){ }
 
-    setBounds(x: number, y: number, width: number, height: number, color: string) {
-      this.x = x;
-      this.y = y;
-      this.width = width;
-      this.height = height;
-      this.color = color;
+    setProps(kwargs: any){
+      this.x = kwargs["x"];
+      this.y = kwargs["y"];
+      this.width = kwargs["width"];
+      this.height = kwargs["height"];
+      this.color = kwargs["color"];
     }
-  
+
+     
     update(deltaTime: number, input: Input, bounds: Rect) {
 
       this.x += this.xVelocity * deltaTime;
       this.y += this.yVelocity * deltaTime;
 
       // Check bounds
-      if(this.x > (bounds.width - this.width)) {
-        this.x = bounds.width - this.width;
+      if(this.renderTransform.tx > (bounds.width - this.width)) {
+        var targetMat = new Matrix3();
+        targetMat.tx = bounds.width - this.width;
+        targetMat.ty = this.renderTransform.ty;
+        const iviewMatrix =  this.parentTransform.inverse()
+        const globalToLocal = iviewMatrix.multiply(targetMat);
+        this.x = globalToLocal.tx;
+        this.xVelocity =  -this.xVelocity;
+      }
+
+      if(this.renderTransform.ty > (bounds.height - this.height)) {
+        var targetMat = new Matrix3();
+        targetMat.ty = bounds.height - this.height;
+        targetMat.tx = this.renderTransform.tx;
+        const iviewMatrix =  this.parentTransform.inverse()
+        const globalToLocal = iviewMatrix.multiply(targetMat);
+        this.y = globalToLocal.ty;
+        this.yVelocity =  -this.yVelocity;
+      }
+
+      if(this.renderTransform.tx < 0) {
+        var targetMat = new Matrix3();
+        targetMat.tx = 0;
+        targetMat.ty = this.renderTransform.ty;
+        const iviewMatrix =  this.parentTransform.inverse()
+        const globalToLocal = iviewMatrix.multiply(targetMat);
+        this.x = globalToLocal.tx;
         this.xVelocity = -this.xVelocity;
       }
-      if(this.y > (bounds.height - this.height)) {
-        this.y = bounds.height - this.height;
+
+      if(this.renderTransform.ty < 0) {
+        var targetMat = new Matrix3();
+        targetMat.ty = 0;
+        targetMat.tx = this.renderTransform.tx;
+        const iviewMatrix =  this.parentTransform.inverse()
+        const globalToLocal = iviewMatrix.multiply(targetMat);
+        this.y = globalToLocal.ty;
         this.yVelocity = -this.yVelocity;
       }
 
-      if(this.x < 0) {
-        this.x = 0;
-        this.xVelocity = -this.xVelocity;
-      }
-      if(this.y < 0) {
-        this.y = 0;
-        this.yVelocity = -this.yVelocity;
-      }
       // Update children
       this.children.forEach(child => {
         child.update(deltaTime, input, bounds);    
@@ -66,15 +93,21 @@ export class RealNode {
     }
 
     transforms( state: TransformState): void {
-      this.viewTransform = state.parentTransform.multiply(this.localTransform)
-      this.renderTransform = state.camera.viewMatrix.multiply(this.viewTransform);
+      this.parentTransform = state.parentTransform;
+      const viewTransform = this.parentTransform.multiply(this.localTransform)
+      this.renderTransform = state.camera.viewMatrix.multiply(viewTransform);
+       // Update children
+             
+      const next_state = new TransformState(state.camera, this.parentTransform);
+       this.children.forEach(child => {
+        child.transforms(next_state);   
+      });
     }
   
-    render(ctx: CanvasRenderingContext2D, state: TransformState) {
+    render(ctx: CanvasRenderingContext2D) {
       // Draw current node
       // this.transforms(state);
-      this.transforms(state);
-
+ 
       ctx.fillStyle = this.color || "transparent";  
 
       ctx.fillRect(this.renderTransform.tx, this.renderTransform.ty, this.width, this.height);
@@ -86,21 +119,16 @@ export class RealNode {
         ctx.lineTo(child.renderTransform.tx + child.width/2, child.renderTransform.ty + child.height/2);
         ctx.stroke();
       });
-      
-      const next_state = new TransformState(state.camera, this.viewTransform);
-      this.renderChildren(ctx, next_state);
 
-     
-          
-  
+      this.renderChildren(ctx);
     }
 
 
-    renderChildren(ctx: CanvasRenderingContext2D, state: TransformState){
+    renderChildren(ctx: CanvasRenderingContext2D){
       // Render all children nodes
       this.children.forEach(child => {
         // Child world matrix is parent's world matrix  
-         child.render(ctx, state); 
+         child.render(ctx); 
       });
     }
 }

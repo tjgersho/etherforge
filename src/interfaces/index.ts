@@ -1,3 +1,5 @@
+import { TransformState } from "../models";
+
 export interface Rect{
     x: number;
     y: number;
@@ -5,7 +7,7 @@ export interface Rect{
     height: number;
 }
 
-export interface GraphNode {
+export interface RealNode {
     x: number;
     y: number; 
     width: number;
@@ -14,10 +16,11 @@ export interface GraphNode {
     xVelocity: number;
     yVelocity: number;
 
-    children: GraphNode[];
+    children: RealNode[];
 
-    setBounds(x: number, y: number, width: number, height: number, color: string): void;
+    setProps(kwargs: any): void;
     update(deltaTime: number, bounds: Rect): void;
+    transforms( state: TransformState): void
     render(ctx: CanvasRenderingContext2D): void; 
     renderChildren(ctx: CanvasRenderingContext2D): void; 
 }
