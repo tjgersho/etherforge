@@ -92,7 +92,6 @@ export class RealNode {
     }
 
     transforms( state: TransformState): void {
-      console.log("Transforms...", state);
       this.transformState = state;
 
       this.parentTransform = state.parentTransform;

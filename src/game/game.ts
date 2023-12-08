@@ -60,7 +60,7 @@ export class Game extends RealNode {
       this.root.processInput(dt, this.inputs);
 
       this.root.update(dt, new Rect(0, 0, this.width,this.height), this.transformState); 
- 
+      this.camera.update(dt);
       //Clear Canvas.
       this.ctx.clearRect(0, 0, this.width, this.height);  
 

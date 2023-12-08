@@ -19,6 +19,11 @@ export class Camera {
     setZoom(newZoom: number) {
         this.targetZoom = newZoom;
     }
+
+    deltaZoom(deltaZoom: number): void {
+      this.zoom += deltaZoom;
+    }
+
  
     update(dt: number) {
       // Smoothly interpolate
