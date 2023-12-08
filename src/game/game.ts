@@ -1,6 +1,5 @@
-import { Input } from "../interfaces";
-import { Matrix3, TransformState, Vector2 } from "../models";
-import { RealNode } from "../realNode";
+import { Matrix3, TransformState, Vector2, Input, Rect, QuadTree} from "../models";
+import { RealNode } from "../entities/realNode";
 import { Camera } from "./camera";
 
 export class Game extends RealNode {
@@ -17,10 +16,13 @@ export class Game extends RealNode {
         y: 0
       },
       mouseDown: false,
+      mouseKey: 0,
       keysDown: {}
     };
     viewTransform: Matrix3 = new Matrix3();
     localTransform: Matrix3 = new Matrix3();
+
+    quadTree: QuadTree;
 
     transformState: TransformState;
 
@@ -34,18 +36,18 @@ export class Game extends RealNode {
         this.camera = new Camera(new Vector2(0,0));
         this.viewTransform.identity();
         this.localTransform.identity();
+        this.quadTree = new QuadTree(new Rect(this.root.x, this.root.y, this.root.width, this.root.height));
     }
     
     start() {
       // Run main render loop    
-      const itentity = new Matrix3()
-      itentity.identity();
+      const identity = new Matrix3()
+      identity.identity();
       this.transformState = new TransformState(
         this.camera,
-        itentity
+        identity
       );
-      
- 
+
       this.run();
     }
   
@@ -54,20 +56,21 @@ export class Game extends RealNode {
       let currentTime = Date.now();  
       let dt = (currentTime - this.lastTime) / 1000;
 
-      this.root.pre_update_hook();
+      // Let graph handle any input
+      this.root.processInput(dt, this.inputs);
 
-      this.root.update(dt, this.inputs, {x:0, y:0, width:this.width, height:this.height}); 
-
-      this.root.post_update_hook();
+      this.root.update(dt, new Rect(0, 0, this.width,this.height), this.transformState); 
  
+      //Clear Canvas.
       this.ctx.clearRect(0, 0, this.width, this.height);  
 
-      this.root.transforms(this.transformState);
- 
-      this.root.render(this.ctx);
+      // Render frame
+      this.root.render(this.ctx, 0);
 
+      // save render time.
       this.lastTime = currentTime;
  
+      //Game Loop.
       requestAnimationFrame(() => this.run());
 
     }

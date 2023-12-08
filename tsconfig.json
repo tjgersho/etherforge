@@ -11,6 +11,6 @@
       "lib": ["es2018", "dom"],
       "moduleResolution": "node",
     },
-    "include": ["src"],
+    "include": ["src", "tests"],
     "exclude": ["src/**/tests"],
 }

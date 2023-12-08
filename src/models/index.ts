@@ -1,5 +1,139 @@
 import { Camera } from "../game/camera";
 
+
+export abstract class Shape {
+  abstract contains(point: Point): boolean
+
+  abstract intersects(range: Rect): boolean
+}
+
+ 
+export class Rect extends Shape {
+    contains(point: Point): boolean {
+      return point.x >= this.x &&
+      point.x <= this.x + this.width &&
+      point.y >= this.y &&
+      point.y <= this.y + this.height;
+    }
+    intersects(range: Rect): boolean {
+      return !(range.x > this.x + this.width
+        || range.x + range.width < this.x
+        || range.y > this.y + this.height
+        || range.y + range.height < this.y);
+    }
+
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+
+    constructor(x: number, y: number, width: number, height: number){
+      super()
+      this.x = x;
+      this.y = y;
+      this.width = width;
+      this.height = height;
+    }
+}
+
+export class Point {
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number){
+      this.x = x;
+      this.y = y;
+    }
+}
+
+ 
+export class Circle  implements Shape{
+    readonly x: number;
+    readonly y: number;
+    readonly r: number;
+    readonly rPow2: number;
+
+    /**
+     * Circle constructor;
+     * @constructs Circle
+     * @param {number} x - X coordinate of the circle.
+     * @param {number} y - Y coordinate of the circle.
+     * @param {number} r - Radius of the circle.
+     * @param {*} [data] - Data to store along the circle.
+     */
+    constructor(x: number, y: number, r: number) {
+        this.x = x;
+        this.y = y;
+        this.r = r;
+        this.rPow2 = this.r * this.r; // To avoid square roots
+    }
+
+    private euclideanDistancePow2(point1: Point, point2: Point): number {
+        return Math.pow((point1.x - point2.x), 2) + Math.pow((point1.y - point2.y), 2);
+    }
+
+    /**
+     * Check if a point is contained in the circle.
+     * @param {Point|Object} point - The point to test if it is contained in the circle.
+     * @returns {boolean} - True if the point is contained in the circle, otherwise false.
+     */
+    contains(point: Point): boolean {
+        return this.euclideanDistancePow2(point, this) <= this.rPow2;
+    }
+
+    /**
+     * Check if a box intersects with this circle.
+     * @param {Box|Object} range - The box to test the intersection with.
+     * @returns {boolean} - True if it intersects, otherwise false.
+     */
+    intersects(range: Rect): boolean {
+        const dX = this.x - Math.max(range.x, Math.min(this.x, range.x + range.width));
+        const dY = this.y - Math.max(range.y, Math.min(this.y, range.y + range.height));
+        return (dX * dX + dY * dY) <= (this.rPow2);
+    }
+}
+
+
+
+export class Touch {
+    id: number;
+    x: number;
+    y: number;
+  }
+
+ 
+export class Input {
+    touches: Touch[];
+    mousePos: {x: number; y: number};
+    mouseDown: boolean;
+    mouseKey: number;
+    keysDown: { [key: string ]: boolean }; 
+}
+  
+
+type PointsComparator = <T extends Point>(point1: T, point2: T) => boolean;
+
+export class QuadTreeConfig {
+    capacity?: number;
+    removeEmptyNodes?: boolean;
+    maximumDepth?: number | -1;
+    arePointsEqual?: PointsComparator;
+}
+
+type DeepRequired<T> = T extends Function ? T : (T extends object ? { [P in keyof Required<T>]: DeepRequired<T[P]>; } : NonNullable<Required<T>>);
+
+export type QuadTreeConfigComplete = DeepRequired<QuadTreeConfig>;
+
+export type Tree = number | {
+    ne: number | Tree;
+    nw: number | Tree;
+    se: number | Tree;
+    sw: number | Tree;
+}
+
+ 
+
+
 // Maintain transform state
 export class TransformState {
   camera: Camera;
@@ -204,4 +338,292 @@ export class Matrix3 {
         newMat.ty = ty;
         return newMat;
     }
+}
+
+
+const defaultConfig: QuadTreeConfigComplete = {
+  capacity: 4,
+  removeEmptyNodes: false,
+  maximumDepth: -1,
+  arePointsEqual: (point1: Point, point2: Point) => point1.x === point2.x && point1.y === point2.y
+};
+
+
+export class QuadTree {
+
+  private readonly container: Rect;
+  private isDivided: boolean;
+  private points: Point[];
+  private readonly config: QuadTreeConfigComplete;
+  private ne!: QuadTree;
+  private nw!: QuadTree;
+  private se!: QuadTree;
+  private sw!: QuadTree;
+
+  /**
+   * Create a new QuadTree
+   * @constructor
+   * @param {Rect} container - The Rect on which the QuadTree will operate.
+   * @param {Object} [config] - The configuration of the quadtree.
+   * @param {number} [config.capacity] - The maximum amount of points per node.
+   * @param {boolean} [config.removeEmptyNodes] - Specify if the quadtree has to remove subnodes if they are empty.
+   * @param {number} [config.maximumDepth] - Specify the maximum depth of the tree.
+   * @param {function} [config.arePointsEqual] - Specify a custom method to compare point for removal.
+   * @param {(Object[]|Point[])} [points] - An array of initial points to insert in the QuadTree.
+   * @param {number} points[].x - X coordinate of the point.
+   * @param {number} points[].y - Y coordinate of the point.
+   */
+  constructor(container: Rect, config?: QuadTreeConfig, points: Point[] = []) {
+      this.container = container;
+      this.config = Object.assign({}, defaultConfig, config);
+
+      this.isDivided = false;
+      this.points = [];
+
+      for (const point of points) {
+          this.insertRecursive(point);
+      }
+  }
+
+  /**
+   * Return a tree representation of the QuadTree
+   * @returns {{se: *, sw: *, ne: *, nw: *}|Number} - A tree representation of the QuadTree
+   */
+  getTree(): Tree {
+      let tree;
+
+      if (this.isDivided) {
+          tree = {
+              ne: this.ne.getTree(),
+              nw: this.nw.getTree(),
+              se: this.se.getTree(),
+              sw: this.sw.getTree()
+          };
+
+      } else {
+          tree = this.getNodePointAmount();
+      }
+
+      return tree;
+  }
+
+  /**
+   * Get all the points in the QuadTree
+   * @returns {(Object[]|Point[])} - An array containing all the points.
+   */
+  getAllPoints(): Point[] {
+      const pointsList: Point[] = [];
+      this.getAllPointsRecursive(pointsList);
+      return pointsList;
+  }
+
+  /**
+   * Get all the points in the QuadTree
+   * @param {(Object[]|Point[])} pointsList
+   * @private
+   */
+  private getAllPointsRecursive(pointsList: Point[]): void {
+      if (!this.isDivided) {
+          Array.prototype.push.apply(pointsList, this.points.slice());
+          return;
+      }
+
+      this.ne.getAllPointsRecursive(pointsList);
+      this.nw.getAllPointsRecursive(pointsList);
+      this.se.getAllPointsRecursive(pointsList);
+      this.sw.getAllPointsRecursive(pointsList);
+  }
+
+  /**
+   * Return the amount of points in this node.
+   * @returns {number} - The amount of points in this node.
+   * @private
+   */
+  private getNodePointAmount(): number {
+      return this.points.length;
+  }
+
+  /**
+   * Divide this node into 4 sub-nodes
+   * @private
+   */
+  private divide(): void {
+      const childMaximumDepth = this.config.maximumDepth === -1 ? -1 : this.config.maximumDepth - 1;
+      const childConfig: QuadTreeConfig = Object.assign({}, this.config, {maximumDepth: childMaximumDepth});
+
+      this.isDivided = true;
+
+      const x = this.container.x;
+      const y = this.container.y;
+      const w = this.container.width / 2;
+      const h = this.container.height / 2;
+
+      // Creation of the sub-nodes, and insertion of the current point
+      this.ne = new QuadTree(new Rect(x + w, y, w, h), childConfig);
+      this.nw = new QuadTree(new Rect(x, y, w, h), childConfig);
+      this.se = new QuadTree(new Rect(x + w, y + h, w, h), childConfig);
+      this.sw = new QuadTree(new Rect(x, y + h, w, h), childConfig);
+
+      this.insert(this.points.slice());
+
+      // We empty this node points
+      this.points.length = 0;
+      this.points = [];
+  }
+
+  /**
+   * Remove a point in the QuadTree
+   * @param {(Point|Object|Point[]|Object[])} pointOrArray - A point or an array of points to remove
+   * @param {number} pointOrArray.x - X coordinate of the point
+   * @param {number} pointOrArray.y - Y coordinate of the point
+   */
+  remove(pointOrArray: Point | Point[]): void {
+      if (Array.isArray(pointOrArray)) {
+          for (const point of pointOrArray) {
+              this.removeRecursive(point);
+          }
+      } else {
+          this.removeRecursive(pointOrArray);
+      }
+  }
+
+  /**
+   * Remove a point in the QuadTree
+   * @param {(Point|Object)} point - A point to remove
+   * @param {number} point.x - X coordinate of the point
+   * @param {number} point.y - Y coordinate of the point
+   * @private
+   */
+  private removeRecursive(point: Point): void {
+      if (!this.container.contains(point)) {
+          return;
+      }
+
+      if (!this.isDivided) {
+          const len = this.points.length;
+          for (let i = len - 1; i >= 0; i--) {
+              if (this.config.arePointsEqual(point, this.points[i])) {
+                  this.points.splice(i, 1);
+              }
+          }
+
+          return;
+      }
+
+      this.ne.removeRecursive(point);
+      this.nw.removeRecursive(point);
+      this.se.removeRecursive(point);
+      this.sw.removeRecursive(point);
+
+      if (this.config.removeEmptyNodes) {
+          if (this.ne.getNodePointAmount() === 0 && !this.ne.isDivided &&
+              this.nw.getNodePointAmount() === 0 && !this.nw.isDivided &&
+              this.se.getNodePointAmount() === 0 && !this.se.isDivided &&
+              this.sw.getNodePointAmount() === 0 && !this.sw.isDivided) {
+
+              this.isDivided = false;
+
+              delete this.ne;
+              delete this.nw;
+              delete this.se;
+              delete this.sw;
+          }
+      }
+  }
+
+  /**
+   * Insert a point in the QuadTree
+   * @param {(Point|Object|Point[]|Object[])} pointOrArray - A point or an array of points to insert
+   * @param {number} pointOrArray.x - X coordinate of the point
+   * @param {number} pointOrArray.y - Y coordinate of the point
+   * @returns {boolean} true if the point or all the point has been inserted, false otherwise
+   */
+  insert(pointOrArray: Point | Point[]): boolean {
+      if (Array.isArray(pointOrArray)) {
+          let returnValue = true;
+          for (const point of pointOrArray) {
+              returnValue = returnValue && this.insertRecursive(point);
+          }
+          return returnValue;
+      } else {
+          return this.insertRecursive(pointOrArray);
+      }
+  }
+
+  /**
+   * Insert a point in the QuadTree
+   * @param {(Point|Object)} point - A point to insert
+   * @param {number} point.x - X coordinate of the point
+   * @param {number} point.y - Y coordinate of the point
+   * @returns {boolean}
+   * @private
+   */
+  private insertRecursive(point: Point): boolean {
+      if (!this.container.contains(point)) {
+          return false;
+      }
+      if (!this.isDivided) {
+          if (this.getNodePointAmount() < this.config.capacity || this.config.maximumDepth === 0) {
+              this.points.push(point);
+              return true;
+          } else if (this.config.maximumDepth === -1 || this.config.maximumDepth > 0) {
+              this.divide();
+          }
+      }
+
+      if (this.isDivided) {
+          return this.ne.insertRecursive(point) 
+              || this.nw.insertRecursive(point) 
+              || this.se.insertRecursive(point) 
+              || this.sw.insertRecursive(point);
+      } else {
+          return false;
+      }
+  }
+
+  /**
+   * Query all the point within a range
+   * @param {Shape} range - The range to test
+   * @returns {(Point[]|Object[])} - The points within the range
+   */
+  query(range: Shape): Point[] {
+      const pointsFound: Point[] = [];
+      this.queryRecursive(range, pointsFound);
+      return pointsFound;
+  }
+
+  /**
+   * @param {Shape} range
+   * @param {(Point[]|Object[])} pointsFound
+   * @returns {(Point[]|Object[])}
+   * @private
+   */
+  private queryRecursive(range: Shape, pointsFound: Point[]): void {
+      if (range.intersects(this.container)) {
+          if (this.isDivided) {
+              this.ne.queryRecursive(range, pointsFound);
+              this.nw.queryRecursive(range, pointsFound);
+              this.se.queryRecursive(range, pointsFound);
+              this.sw.queryRecursive(range, pointsFound);
+          } else {
+              const p = this.points.filter((point) => range.contains(point));
+
+              Array.prototype.push.apply(pointsFound, p);
+          }
+      }
+  }
+
+  /**
+   * Clear the QuadTree
+   */
+  clear(): void {
+      this.points = [];
+      this.isDivided = false;
+
+      delete this.ne;
+      delete this.nw;
+      delete this.se;
+      delete this.sw;
+  }
+
 }
