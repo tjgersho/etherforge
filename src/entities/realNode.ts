@@ -115,14 +115,17 @@ export class RealNode {
         // this.transforms(state);
         ctx.fillStyle = this.color || "transparent";  
 
-        ctx.fillRect(this.cameraTransform.tx, this.cameraTransform.ty, this.width, this.height);
+        ctx.fillRect(this.cameraTransform.tx, this.cameraTransform.ty, this.width*this.cameraTransform.a, this.height*this.cameraTransform.d);
   
         if(depth > 0){
           // Draw lines to children
           this.children.forEach(child => {
           ctx.beginPath();
-          ctx.moveTo(this.cameraTransform.tx + this.width/2, this.cameraTransform.ty + this.height/2); 
-          ctx.lineTo(child.cameraTransform.tx + child.width/2, child.cameraTransform.ty + child.height/2);
+          ctx.moveTo(this.cameraTransform.tx + (this.width * this.cameraTransform.a)/2, 
+                        this.cameraTransform.ty + (this.height* this.cameraTransform.d)/2); 
+
+          ctx.lineTo(child.cameraTransform.tx + (child.width*child.cameraTransform.a)/2, 
+                        child.cameraTransform.ty  + (child.height*child.cameraTransform.d)/2);
           ctx.stroke();
         });
         }
@@ -135,7 +138,9 @@ export class RealNode {
       // Render all children nodes
       this.children.forEach(child => {
         // Child world matrix is parent's world matrix  
+        try{
          child.render(ctx, depth); 
+        }catch(e){}
       });
     }
     

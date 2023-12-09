@@ -3,7 +3,8 @@
 
 export class Camera {
     pos: Vector2;
-
+    width: number;
+    height: number;
     // Current and target zoom  
     zoom: number = 1;
     targetZoom: number = 1;  
@@ -11,32 +12,20 @@ export class Camera {
     // Zoom speed 
     zoomSpeed: number = 0.05;
 
-    constructor(initPos: Vector2) {
+    constructor(initPos: Vector2, width: number, height: number) {
       this.pos = initPos;
+      this.width = width;
+      this.height = height;
     } 
 
-    // New desired target 
-    setZoom(newZoom: number) {
-        this.targetZoom = newZoom;
-    }
 
     deltaZoom(deltaZoom: number): void {
       this.zoom += deltaZoom;
+      this.pos.x += (this.width * deltaZoom)/2;
+      this.pos.y += (this.height * deltaZoom)/2;
     }
 
- 
-    update(dt: number) {
-      // Smoothly interpolate
-      if (this.zoom !== this.targetZoom) {
-        // Lerp towards target 
-        this.zoom += (this.targetZoom - this.zoom) * this.zoomSpeed * dt;  
-  
-        // Clamp
-        this.zoom = Math.min(Math.max(this.zoom, 0.1), 5);
-      }
-    }
-    
-    
+   
     get viewMatrix() : Matrix3 {
       const viewMatrix = new Matrix3();
       viewMatrix.a = this.zoom;

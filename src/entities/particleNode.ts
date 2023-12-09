@@ -83,7 +83,7 @@ export class ParticleNode extends RealNode {
         ctx.fillStyle = this.color || "transparent";  
 
         ctx.beginPath();
-        ctx.arc(this.cameraTransform.tx + this.width/2,  this.cameraTransform.ty + this.height/2, this.aveRadius, 0,2*Math.PI);
+        ctx.arc(this.cameraTransform.tx + (this.width * this.cameraTransform.a)/2,  this.cameraTransform.ty + (this.height*this.cameraTransform.d)/2, this.aveRadius*(this.cameraTransform.a + this.cameraTransform.d)/2, 0,2*Math.PI);
         ctx.fill();
         
        this.renderChildren(ctx, depth);

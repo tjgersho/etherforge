@@ -33,7 +33,7 @@ export class Game extends RealNode {
         this.root.setProps({x:0,y:0,width,height, color:"gray"});
         this.width = width;
         this.height = height;
-        this.camera = new Camera(new Vector2(0,0));
+        this.camera = new Camera(new Vector2(0,0), width, height);
         this.viewTransform.identity();
         this.localTransform.identity();
         this.quadTree = new QuadTree(new Rect(this.root.x, this.root.y, this.root.width, this.root.height));
@@ -60,7 +60,6 @@ export class Game extends RealNode {
       this.root.processInput(dt, this.inputs);
 
       this.root.update(dt, new Rect(0, 0, this.width,this.height), this.transformState); 
-      this.camera.update(dt);
       //Clear Canvas.
       this.ctx.clearRect(0, 0, this.width, this.height);  
 
