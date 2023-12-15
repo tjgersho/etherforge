@@ -1,10 +1,10 @@
 import { Camera } from '../src/game/camera';
-import { ChildNode, Matrix3, RealTime, Rect, TransformState, Vector2 } from '../src/index';
+import { ChildNode, Matrix3, etherforge, Rect, TransformState, Vector2 } from '../src/index';
 
 
 it("Moves in x direction", () => {
     let canvasElem: HTMLCanvasElement = {getContext: (dat: string)=>{}} as HTMLCanvasElement;
-    let engine =  new RealTime(canvasElem);
+    let engine =  new etherforge(canvasElem);
     const child = new ChildNode();
     child.setProps({x:100, y:0, width:100, height:100});
     engine.game.root.children.push(child);
@@ -58,7 +58,7 @@ it("Moves in x direction", () => {
 
 it("Moves in x direction --", () => {
     let canvasElem: HTMLCanvasElement = {getContext: (dat: string)=>{}} as HTMLCanvasElement;
-    let engine =  new RealTime(canvasElem);
+    let engine =  new etherforge(canvasElem);
     const child = new ChildNode();
     child.setProps({x:100, y:0, width:100, height:100});
     engine.game.root.children.push(child);

@@ -1,6 +1,6 @@
 import { Game } from "./game/game";
 
-export class RealTime {
+export class etherforge {
 
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
@@ -13,7 +13,7 @@ export class RealTime {
     }
 
     run(): void {
-        console.log("RealTime RUNNING")
+        console.log("etherforge RUNNING")
         this.game.start();
     }
     
