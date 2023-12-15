@@ -15,7 +15,7 @@ it("Moves in x direction", () => {
 
     const identity = new Matrix3()
     identity.identity();
-    let cam = new Camera(new Vector2(0,0));
+    let cam = new Camera(new Vector2(0,0), 100, 100);
     let transformState = new TransformState(
         cam,
         identity
@@ -69,7 +69,7 @@ it("Moves in x direction --", () => {
 
     const identity = new Matrix3()
     identity.identity();
-    let cam = new Camera(new Vector2(0,0));
+    let cam = new Camera(new Vector2(0,0), 100, 100);
     let transformState = new TransformState(
         cam,
         identity
